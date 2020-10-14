@@ -283,13 +283,20 @@ class CameraFragment : Fragment() {
         // CameraSelector
         val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
 
-        // Preview
+        // TODO Preview
         preview = Preview.Builder()
                 // We request aspect ratio but no resolution
                 .setTargetAspectRatio(screenAspectRatio)
                 // Set initial target rotation
                 .setTargetRotation(rotation)
                 .build()
+
+//        preview.setOnPreviewOutputUpdateListener {
+//            previewOutput ->
+//            Log.e("jerry", "get surface texture " + previewOutput.surfaceTexture)
+////            cameraTextureView.surfaceTexture = previewOutput.surfaceTexture
+//        }
+
 
         // ImageCapture
         imageCapture = ImageCapture.Builder()
@@ -320,11 +327,11 @@ class CameraFragment : Fragment() {
                     })
                 }
 
-        // Must unbind the use-cases before rebinding them
+        // TODO Jerry Must unbind the use-cases before rebinding them
         cameraProvider.unbindAll()
 
         try {
-            // A variable number of use-cases can be passed here -
+            // TODO Jerry A variable number of use-cases can be passed here -
             // camera provides access to CameraControl & CameraInfo
             camera = cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, imageCapture, imageAnalyzer)
@@ -363,7 +370,7 @@ class CameraFragment : Fragment() {
             container.removeView(it)
         }
 
-        // Inflate a new view containing all UI for controlling the camera
+        // TODO [UI components] Inflate a new view containing all UI for controlling the camera
         val controls = View.inflate(requireContext(), R.layout.camera_ui_container, container)
 
         // In the background, load latest photo taken (if any) for gallery thumbnail
@@ -396,7 +403,7 @@ class CameraFragment : Fragment() {
                         .setMetadata(metadata)
                         .build()
 
-                // Setup image capture listener which is triggered after photo has been taken
+                // TODO jerry Setup image capture listener which is triggered after photo has been taken
                 imageCapture.takePicture(
                         outputOptions, cameraExecutor, object : ImageCapture.OnImageSavedCallback {
                     override fun onError(exc: ImageCaptureException) {
