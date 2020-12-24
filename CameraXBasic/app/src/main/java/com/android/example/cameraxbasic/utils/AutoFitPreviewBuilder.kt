@@ -102,9 +102,25 @@ class AutoFitPreviewBuilder private constructor(config: Preview.Builder,
             parent.addView(viewFinder, 0)
 
             if (isFilter) {
-                oesTextureId = TextureShader.createOESTextureObject()
-                renderer.init(viewFinder, oesTextureId)
-                renderer.initOESTexture(surfaceTexture)
+                viewFinder.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+                    override fun onSurfaceTextureSizeChanged(p0: SurfaceTexture, p1: Int, p2: Int) {
+
+                    }
+
+                    override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
+
+                    }
+
+                    override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean {
+                        return true
+                    }
+
+                    override fun onSurfaceTextureAvailable(p0: SurfaceTexture, p1: Int, p2: Int) {
+                        oesTextureId = TextureShader.createOESTextureObject()
+                        renderer.init(viewFinder, oesTextureId)
+                        renderer.initOESTexture(surfaceTexture)
+                    }
+                }
             } else {
                 viewFinder.setSurfaceTexture(surfaceTexture)
             }
