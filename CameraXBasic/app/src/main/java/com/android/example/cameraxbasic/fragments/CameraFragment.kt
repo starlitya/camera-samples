@@ -33,6 +33,7 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.KeyEvent
 import android.view.LayoutInflater
+import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.MimeTypeMap
@@ -48,7 +49,6 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.net.toFile
@@ -63,6 +63,7 @@ import com.android.example.cameraxbasic.MainActivity
 import com.android.example.cameraxbasic.R
 import com.android.example.cameraxbasic.utils.ANIMATION_FAST_MILLIS
 import com.android.example.cameraxbasic.utils.ANIMATION_SLOW_MILLIS
+import com.android.example.cameraxbasic.utils.AutoFitPreviewBuilder
 import com.android.example.cameraxbasic.utils.simulateClick
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
@@ -75,7 +76,6 @@ import java.util.ArrayDeque
 import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.collections.ArrayList
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -92,7 +92,7 @@ typealias LumaListener = (luma: Double) -> Unit
 class CameraFragment : Fragment() {
 
     private lateinit var container: ConstraintLayout
-    private lateinit var viewFinder: PreviewView
+    private lateinit var viewFinder: TextureView //TODO Jerry
     private lateinit var outputDirectory: File
     private lateinit var broadcastManager: LocalBroadcastManager
 
@@ -103,6 +103,7 @@ class CameraFragment : Fragment() {
     private var imageAnalyzer: ImageAnalysis? = null
     private var camera: Camera? = null
     private var cameraProvider: ProcessCameraProvider? = null
+    private var isFilter = false
 
     private val displayManager by lazy {
         requireContext().getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
@@ -221,6 +222,8 @@ class CameraFragment : Fragment() {
             // Set up the camera and its use cases
             setUpCamera()
         }
+
+
     }
 
     /**
@@ -261,6 +264,13 @@ class CameraFragment : Fragment() {
 
             // Build and bind the camera use cases
             bindCameraUseCases()
+
+//            viewFinder.previewStreamState.observe(viewLifecycleOwner, Observer { streamState ->
+//                when(streamState) {
+//                    PreviewView.StreamState.IDLE -> Log.e("jerry", "preview idle")
+//                    PreviewView.StreamState.STREAMING -> Log.e("jerry", "preview streaming")
+//                }
+//            })
         }, ContextCompat.getMainExecutor(requireContext()))
     }
 
@@ -283,20 +293,13 @@ class CameraFragment : Fragment() {
         // CameraSelector
         val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
 
-        // TODO Preview
-        preview = Preview.Builder()
-                // We request aspect ratio but no resolution
-                .setTargetAspectRatio(screenAspectRatio)
-                // Set initial target rotation
-                .setTargetRotation(rotation)
-                .build()
+        val previewBinder = Preview.Builder()
+            // We request aspect ratio but no resolution
+            .setTargetAspectRatio(screenAspectRatio)
+            // Set initial target rotation
+            .setTargetRotation(rotation)
 
-//        preview.setOnPreviewOutputUpdateListener {
-//            previewOutput ->
-//            Log.e("jerry", "get surface texture " + previewOutput.surfaceTexture)
-////            cameraTextureView.surfaceTexture = previewOutput.surfaceTexture
-//        }
-
+        preview = AutoFitPreviewBuilder.build(previewBinder, viewFinder, isFilter)
 
         // ImageCapture
         imageCapture = ImageCapture.Builder()
@@ -307,6 +310,7 @@ class CameraFragment : Fragment() {
                 // Set initial target rotation, we will have to call this again if rotation changes
                 // during the lifecycle of this use case
                 .setTargetRotation(rotation)
+                .setFlashMode(ImageCapture.FLASH_MODE_ON) //TODO Jerry
                 .build()
 
         // ImageAnalysis
@@ -323,7 +327,8 @@ class CameraFragment : Fragment() {
                         // Values returned from our analyzer are passed to the attached listener
                         // We log image analysis results here - you should do something useful
                         // instead!
-                        Log.d(TAG, "Average luminosity: $luma")
+                        //Log.d(TAG, "Average luminosity: $luma")
+
                     })
                 }
 
@@ -336,8 +341,8 @@ class CameraFragment : Fragment() {
             camera = cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, imageCapture, imageAnalyzer)
 
-            // Attach the viewfinder's surface provider to preview use case
-            preview?.setSurfaceProvider(viewFinder.surfaceProvider)
+            // TODO Jerry Attach the viewfinder's surface provider to preview use case
+            //preview?.setSurfaceProvider(viewFinder.surfaceProvider)
         } catch (exc: Exception) {
             Log.e(TAG, "Use case binding failed", exc)
         }
@@ -484,6 +489,12 @@ class CameraFragment : Fragment() {
                         .actionCameraToGallery(outputDirectory.absolutePath))
             }
         }
+
+        controls.findViewById<ImageButton>(R.id.filter_button).setOnClickListener {
+            isFilter = !isFilter
+            // Re-bind use cases to update selected camera
+            bindCameraUseCases()
+        }
     }
 
     /** Enabled or disabled a button to switch cameras depending on the available cameras */
@@ -595,7 +606,7 @@ class CameraFragment : Fragment() {
 
     companion object {
 
-        private const val TAG = "CameraXBasic"
+        private const val TAG = "jerry"
         private const val FILENAME = "yyyy-MM-dd-HH-mm-ss-SSS"
         private const val PHOTO_EXTENSION = ".jpg"
         private const val RATIO_4_3_VALUE = 4.0 / 3.0
